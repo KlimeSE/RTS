@@ -33,7 +33,8 @@ namespace klime.RTS
         Idle,
         GoToView,
         InView,
-        GoToIdle
+        GoToIdle,
+        Test
     }
 
     public enum BuildState
