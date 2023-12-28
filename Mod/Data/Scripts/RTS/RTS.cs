@@ -21,7 +21,6 @@ using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Input;
-using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
 
@@ -33,18 +32,6 @@ namespace klime.RTS
         Idle,
         GoToView,
         InView,
-        GoToIdle
-    }
-
-    public enum BuildState
-    {
-        Idle,
-        GoToPicker,
-        InPicker,
-        GoToBuild,
-        InBuild,
-        GoToCreate,
-        LoopCreate,
         GoToIdle
     }
 
@@ -1024,115 +1011,6 @@ namespace klime.RTS
         }
     }
 
-    public class BuildGrid : LabelBoxButton
-    {
-        public MyObjectBuilder_CubeGrid buildGridOB;
-        public MyStringId buildTextureID;
-        public string buildGridName;
-        public Color defaultColor = Vector4.One;
-        public Color highlightColor = Color.SkyBlue;
-
-        public BuildGrid(HudParentBase parent, string buildGridName, Vector2 offset)
-        {
-            this.buildGridName = buildGridName;
-            this.buildTextureID = MyStringId.GetOrCompute(buildGridName);
-
-            this.Register(parent, true);
-            this.AutoResize = false;
-            this.background.Material = new Material(buildTextureID, Vector2.Zero);
-            this.Color = defaultColor;
-            this.Text = "";
-            this.Size = new Vector2(240, 120);
-            this.Offset = offset;
-        }
-
-        public void Update(Vector2 mousePos)
-        {
-            var xMin = this.Position.X - (this.Size.X / 2);
-            var xMax = this.Position.X + (this.Size.X / 2);
-            var yMin = this.Position.Y - (this.Size.Y / 2);
-            var yMax = this.Position.Y + (this.Size.Y / 2);
-            if (mousePos.X > xMin && mousePos.X < xMax)
-            {
-                if (mousePos.Y > yMin && mousePos.Y < yMax)
-                {
-                    this.Color = highlightColor;
-                    if (MyAPIGateway.Input.IsNewLeftMousePressed())
-                    {
-                        DoClick();
-                    }
-                }
-                else
-                {
-                    this.Color = defaultColor;
-                }
-            }
-            else
-            {
-                this.Color = defaultColor;
-            }
-        }
-
-        public void DoClick()
-        {
-            RTS.rtsInstance.BuildRequest(buildGridName);
-        }
-
-        public void Close()
-        {
-            this.Unregister();
-        }
-    }
-
-    public class BuildUI : LabelBox
-    {
-        public MyStringId buildUITexture;
-        public List<BuildGrid> buildGrids = new List<BuildGrid>();
-        public List<string> buildPrefabNames = new List<string>();
-
-        public Color defaultColor = new Color(41, 54, 62, 200);
-        public BuildUI(List<string> buildPrefabNames)
-        {
-            this.buildPrefabNames = new List<string>(buildPrefabNames);
-            this.Register(HudMain.HighDpiRoot, true);
-
-
-            this.background.Material = new Material(MyStringId.GetOrCompute("RTSSquare"), Vector2.Zero);
-            this.AutoResize = false;
-            this.background.Color = defaultColor;
-            this.Size = new Vector2(700, 150);
-            this.Offset = new Vector2(-500, -450);
-            this.Text = "";
-
-            Vector2 gridOffset = new Vector2(-240, 0);
-            foreach (var name in this.buildPrefabNames)
-            {
-                BuildGrid bGrid = new BuildGrid(this, name, gridOffset);
-                buildGrids.Add(bGrid);
-                gridOffset += new Vector2(240, 0);
-            }
-
-        }
-
-        public void Update(Vector2 mousePos)
-        {
-            foreach (var bGrid in this.buildGrids)
-            {
-                bGrid.Update(mousePos);
-            }
-        }
-
-        public void Close()
-        {
-            foreach (var bGrid in this.buildGrids)
-            {
-                bGrid.Close();
-            }
-
-            this.Unregister();
-        }
-    }
-
     [ProtoInclude(3000, typeof(GridAttackPacket))]
     [ProtoInclude(2000, typeof(CharacterMovePacket))]
     [ProtoInclude(1000, typeof(GridMovePacket))]
@@ -1209,18 +1087,6 @@ namespace klime.RTS
         }
     }
 
-    public class DelayGrid
-    {
-        public IMyCubeGrid grid;
-        public int runTime;
-
-        public DelayGrid(IMyCubeGrid grid, int runTime)
-        {
-            this.grid = grid;
-            this.runTime = runTime;
-        }
-    }
-
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation | MyUpdateOrder.BeforeSimulation)]
     public class RTS : MySessionComponentBase
     {
@@ -1262,28 +1128,6 @@ namespace klime.RTS
         RemoteBotAPI aiEnabledAPI;
         CustomMouse mouse;
 
-        //Building
-        BuildState currentBuildState = BuildState.Idle;
-        BuildUI currentBuildUI;
-        List<string> buildPrefabNames = new List<string>
-        {
-            //"Barracks",
-            //"TankFactory",
-            //"AircraftFactory",
-            "barrack",
-            "factory",
-            "airbase"
-        };
-
-        string currentBuildGridName = "";
-        List<IMyCubeGrid> incomingPrefab = new List<IMyCubeGrid>();
-        List<DelayGrid> delayGrids = new List<DelayGrid>();
-        MyCubeGrid fakeBuildGrid;
-        List<IHitInfo> hits = new List<IHitInfo>();
-        MyObjectBuilder_CubeGrid currentOB;
-
-
-        int masterTimer = 0;
 
         public float InQuint(float t) => t * t * t * t * t;
         public float OutQuint(float t) => 1 - InQuint(1 - t);
@@ -1304,18 +1148,7 @@ namespace klime.RTS
                 aiEnabledAPI = new RemoteBotAPI();
             }
 
-            MyVisualScriptLogicProvider.PrefabSpawnedDetailed += PrefabSpawned;
             rtsInstance = this;
-        }
-
-        private void PrefabSpawned(long entityId, string prefabName)
-        {
-            if(buildPrefabNames.Contains(prefabName))
-            {
-                var grid = MyAPIGateway.Entities.GetEntityById(entityId) as IMyCubeGrid;
-                DelayGrid dGrid = new DelayGrid(grid, masterTimer + 5);
-                delayGrids.Add(dGrid);
-            }
         }
 
         private void NetworkHandler(ushort arg1, byte[] arg2, ulong arg3, bool arg4)
@@ -1470,6 +1303,11 @@ namespace klime.RTS
 
                 if (!isRotating)
                 {
+                    //if (inputVec.LengthSquared() != 0 || (MyAPIGateway.Input.DeltaMouseScrollWheelValue() != 0))
+                    //{
+                    //    workingCameraVelocity = Vector3D.Zero;
+                    //}
+
                     if (validInputThisTick && inputVec.LengthSquared() > 0)
                     {
                         var oppInputVec = -1 * inputVec;
@@ -1478,52 +1316,6 @@ namespace klime.RTS
                     }
                 }
             }
-        }
-
-        public override void UpdateAfterSimulation()
-        {
-            for (int i = delayGrids.Count - 1; i >= 0; i--)
-            {
-                if (masterTimer > delayGrids[i].runTime)
-                {
-                    ProcessGrid(delayGrids[i].grid);
-                    delayGrids.RemoveAt(i);
-                }
-            }
-            masterTimer++;
-        }
-
-        public void ProcessGrid(IMyCubeGrid grid)
-        {
-            currentOB = grid.GetObjectBuilder() as MyObjectBuilder_CubeGrid;
-
-            var fakeOb = currentOB.Clone() as MyObjectBuilder_CubeGrid;
-            MyAPIGateway.Entities.RemapObjectBuilder(fakeOb);
-            fakeOb.EntityId = 0;
-            fakeOb.CreatePhysics = false;
-            MyAPIGateway.Entities.CreateFromObjectBuilderParallel(fakeOb, false, CompleteGrid);
-
-            grid.Close();
-        }
-
-        private void CompleteGrid(IMyEntity entity)
-        {
-            fakeBuildGrid = entity as MyCubeGrid;
-            fakeBuildGrid.SyncFlag = false;
-            fakeBuildGrid.Save = false;
-            fakeBuildGrid.RemoveFromGamePruningStructure();
-            fakeBuildGrid.Render.CastShadows = false;
-            fakeBuildGrid.DisplayName = "";
-            
-            var iGrid = fakeBuildGrid as IMyCubeGrid;
-            List<IMySlimBlock> blocks = new List<IMySlimBlock>();
-            iGrid.GetBlocks(blocks);
-            foreach (var block in blocks)
-            {
-                block.Dithering = 2.5f;
-            }
-
-            MyAPIGateway.Entities.AddEntity(fakeBuildGrid);
         }
 
         public override void Draw()
@@ -1836,7 +1628,6 @@ namespace klime.RTS
             if (currentViewState == ViewState.GoToIdle)
             {
                 RemoveElements();
-                RemoveBuildElements();
                 MyAPIGateway.Session.SetCameraController(MyCameraControllerEnum.ThirdPersonSpectator, MyAPIGateway.Session.Player.Character);
                 MyVisualScriptLogicProvider.SetHudState(1, 0);
 
@@ -1849,142 +1640,6 @@ namespace klime.RTS
                 rotPrev = Vector2.Zero;
                 rotVel = Vector2.Zero;
             }
-
-            if (validInputThisTick && MyAPIGateway.Input.IsNewKeyPressed(MyKeys.B) && currentViewState == ViewState.InView)
-            {
-                if (currentBuildState == BuildState.Idle)
-                {
-                    if (ValidateLocalCharacter())
-                    {
-                        currentBuildState = BuildState.GoToPicker;
-                    }
-                }
-                else
-                {
-                    currentBuildState = BuildState.GoToIdle;
-                }
-            }
-
-            if (currentBuildState == BuildState.Idle)
-            {
-
-            }
-
-            if (currentBuildState == BuildState.GoToPicker)
-            {
-                CreateBuildElements();
-                currentBuildState = BuildState.InPicker;
-            }
-
-            if (currentBuildState == BuildState.InPicker)
-            {
-
-            }
-
-            if (currentBuildState == BuildState.GoToBuild)
-            {
-                MyAPIGateway.PrefabManager.SpawnPrefab(incomingPrefab, currentBuildGridName, Vector3D.Zero + Vector3D.Forward * 100, Vector3D.Forward, Vector3D.Up,
-                    ownerId: MyAPIGateway.Session.Player.IdentityId);
-                currentBuildState = BuildState.InBuild;
-            }
-
-            if (currentBuildState == BuildState.InBuild)
-            {
-                if (fakeBuildGrid != null)
-                {
-                    Vector3D groundPos = GetBuildGroundPos();
-                    Vector3D groudUp = Vector3D.Normalize(groundPos - nearPlanet.PositionComp.GetPosition());
-                    Vector3D groundForward = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(groudUp));
-
-                    fakeBuildGrid.WorldMatrix = MatrixD.CreateWorld(groundPos, -groudUp, groundForward);
-
-                    if (MyAPIGateway.Input.IsNewLeftMousePressed())
-                    {
-                        currentBuildState = BuildState.GoToCreate;
-                    }
-                }
-            }
-
-            if (currentBuildState == BuildState.GoToCreate)
-            {
-                var realOB = currentOB.Clone() as MyObjectBuilder_CubeGrid;
-                MyAPIGateway.Entities.RemapObjectBuilder(realOB);
-                realOB.EntityId = 0;
-                realOB.PositionAndOrientation = new MyPositionAndOrientation(fakeBuildGrid.WorldMatrix);
-
-                fakeBuildGrid.Close();
-                fakeBuildGrid = null;
-
-                MyAPIGateway.Entities.CreateFromObjectBuilderParallel(realOB, false, CreateGrid);
-
-                currentBuildState = BuildState.LoopCreate;
-            }
-
-            if (currentBuildState == BuildState.LoopCreate)
-            {
-                currentBuildGridName = "";
-                fakeBuildGrid?.Close();
-                fakeBuildGrid = null;
-
-                incomingPrefab.Clear();
-                currentOB = null;
-                currentBuildState = BuildState.InPicker;
-            }
-
-            if (currentBuildState == BuildState.GoToIdle)
-            {
-                RemoveBuildElements();
-                currentBuildState = BuildState.Idle;
-            }
-
-            if (currentBuildUI != null)
-            {
-                currentBuildUI?.Update(mouse.Position);
-            }
-        }
-
-        private void CreateGrid(IMyEntity entity)
-        {
-            var grid = entity as MyCubeGrid;
-            MyAPIGateway.Entities.AddEntity(grid);
-        }
-
-        private Vector3D GetBuildGroundPos()
-        {
-            Vector3D worldPos = new Vector3D(mouse.Position.X, mouse.Position.Y, -0.00000001);
-            worldPos = Vector3D.Transform(worldPos, mouse.HudSpace.PlaneToWorld);
-            var camPos = MyAPIGateway.Session.Camera.WorldMatrix.Translation;
-            var dirFromCam = Vector3D.Normalize(worldPos - camPos);
-
-            hits.Clear();
-            MyAPIGateway.Physics.CastRay(camPos, camPos + (dirFromCam * 1000), hits);
-
-            Vector3D groundRetVec = Vector3D.Zero;
-            if (hits.Count > 0)
-            {
-                hits.OrderBy(x => Vector3D.Distance(worldPos, x.Position));
-                IHitInfo selectedHit = null;
-
-                foreach (var hit in hits)
-                {
-                    if (hit.HitEntity != null)
-                    {
-                        MyVoxelBase voxel = hit.HitEntity as MyVoxelBase;
-                        if (voxel != null)
-                        {
-                            selectedHit = hit;
-                            break;
-                        }
-                    }
-                }
-
-                if (selectedHit != null)
-                {
-                    groundRetVec = selectedHit.Position;
-                }
-            }
-
-            return groundRetVec;
         }
 
         private void CreateElements()
@@ -2045,33 +1700,6 @@ namespace klime.RTS
             catch (Exception e)
             {
                 MyLog.Default.WriteLine($"KLIME RTS: {e.Message}");
-            }
-        }
-
-        private void CreateBuildElements()
-        {
-            currentBuildUI = new BuildUI(buildPrefabNames);
-        }
-
-        private void RemoveBuildElements()
-        {
-            currentBuildUI?.Close();
-            currentBuildUI = null;
-
-            currentBuildGridName = "";
-            fakeBuildGrid?.Close();
-            fakeBuildGrid = null;
-
-            incomingPrefab.Clear();
-            currentOB = null;
-        }
-
-        public void BuildRequest(string buildName)
-        {
-            currentBuildGridName = buildName;
-            if (currentBuildState == BuildState.InPicker)
-            {
-                currentBuildState = BuildState.GoToBuild;
             }
         }
 
@@ -2244,8 +1872,6 @@ namespace klime.RTS
                 MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(netId, NetworkHandler);
                 aiEnabledAPI?.Close();
             }
-
-            MyVisualScriptLogicProvider.PrefabSpawnedDetailed -= PrefabSpawned;
         }
     }
 }

@@ -6,72 +6,51 @@
 				<TypeId>TransparentMaterialDefinition</TypeId>
 				<SubtypeId>ClickableCursor</SubtypeId>
 			</Id>
-			<Texture>Textures\ClickableCursor.dds</Texture>
-			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
 			<AlphaMistingEnable>false</AlphaMistingEnable>
+			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
 			<AlphaSaturation>1</AlphaSaturation>
+			<Emissivity>0</Emissivity>
+			<IgnoreDepth>false</IgnoreDepth>
+			<NeedSort>false</NeedSort>
+			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
+			<Texture>Textures\ClickableCursor.dds</Texture>
 			<Reflectivity>0</Reflectivity>
+			<UseAtlas>false</UseAtlas>
+			<UVOffset>
+				<X>0</X>
+				<Y>0</Y>
+			</UVOffset>
+			<UVSize>
+				<X>1</X>
+				<Y>1</Y>
+			</UVSize>
 		</TransparentMaterial>
+	</TransparentMaterials>
+	
+	<TransparentMaterials>
 		<TransparentMaterial>
 			<Id>
 				<TypeId>TransparentMaterialDefinition</TypeId>
 				<SubtypeId>PointCircle</SubtypeId>
 			</Id>
+			<AlphaMistingEnable>false</AlphaMistingEnable>
+			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
+			<AlphaSaturation>1</AlphaSaturation>
+			<Emissivity>0</Emissivity>
+			<IgnoreDepth>false</IgnoreDepth>
+			<NeedSort>false</NeedSort>
+			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
 			<Texture>Textures\PointCircle.dds</Texture>
-			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
-			<AlphaMistingEnable>false</AlphaMistingEnable>
-			<AlphaSaturation>1</AlphaSaturation>
 			<Reflectivity>0</Reflectivity>
-		</TransparentMaterial>
-		<TransparentMaterial>
-			<Id>
-				<TypeId>TransparentMaterialDefinition</TypeId>
-				<SubtypeId>RTSSquare</SubtypeId>
-			</Id>
-			<Texture>Textures\Particles\Square.dds</Texture>
-			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
-			<AlphaMistingEnable>false</AlphaMistingEnable>
-			<AlphaSaturation>1</AlphaSaturation>
-			<Reflectivity>0</Reflectivity>
-		</TransparentMaterial>
-		<TransparentMaterial>
-			<Id>
-				<TypeId>TransparentMaterialDefinition</TypeId>
-				<SubtypeId>barrack</SubtypeId>
-			</Id>
-			<Texture>Textures\barrack.dds</Texture>
-			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
-			<AlphaMistingEnable>false</AlphaMistingEnable>
-			<AlphaSaturation>1</AlphaSaturation>
-			<Reflectivity>0</Reflectivity>
-		</TransparentMaterial>
-		<TransparentMaterial>
-			<Id>
-				<TypeId>TransparentMaterialDefinition</TypeId>
-				<SubtypeId>factory</SubtypeId>
-			</Id>
-			<Texture>Textures\factory.dds</Texture>
-			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
-			<AlphaMistingEnable>false</AlphaMistingEnable>
-			<AlphaSaturation>1</AlphaSaturation>
-			<Reflectivity>0</Reflectivity>
-		</TransparentMaterial>
-		<TransparentMaterial>
-			<Id>
-				<TypeId>TransparentMaterialDefinition</TypeId>
-				<SubtypeId>airbase</SubtypeId>
-			</Id>
-			<Texture>Textures\airbase.dds</Texture>
-			<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-			<SoftParticleDistanceScale>0</SoftParticleDistanceScale>
-			<AlphaMistingEnable>false</AlphaMistingEnable>
-			<AlphaSaturation>1</AlphaSaturation>
-			<Reflectivity>0</Reflectivity>
+			<UseAtlas>false</UseAtlas>
+			<UVOffset>
+				<X>0</X>
+				<Y>0</Y>
+			</UVOffset>
+			<UVSize>
+				<X>1</X>
+				<Y>1</Y>
+			</UVSize>
 		</TransparentMaterial>
 	</TransparentMaterials>
 </Definitions>
