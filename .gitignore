@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+RTS.csproj
+Mod/metadata.mod
+Mod/modinfo.sbmi
