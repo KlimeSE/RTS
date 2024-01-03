@@ -546,109 +546,139 @@ namespace klime.RTS
                 worldPos = Vector3D.Transform(worldPos, this.HudSpace.PlaneToWorld);
                 var dirFromCam = Vector3D.Normalize(worldPos - camPos);
 
-                hits.Clear();
-                MyAPIGateway.Physics.CastRay(camPos, camPos + (dirFromCam * 1000), hits);
 
-                if (hits.Count > 0)
+                Vector3D centralPos = Vector3D.Zero;
+                for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
                 {
-                    hits.OrderBy(x => Vector3D.Distance(worldPos, x.Position));
-                    IHitInfo selectedHit = null;
-                    bool hitGrid = false;
-
-                    foreach (var hit in hits)
-                    {
-                        if (hit.HitEntity != null)
-                        {
-                            IMyCubeGrid grid = hit.HitEntity as IMyCubeGrid;
-                            if (grid != null && grid.Physics != null)
-                            {
-                                var rel = MyIDModule.GetRelationPlayerBlock(grid.BigOwners.FirstOrDefault(), MyAPIGateway.Session.Player.IdentityId);
-
-                                if (rel == MyRelationsBetweenPlayerAndBlock.Enemies)
-                                {
-                                    hitGrid = true;
-                                    selectedHit = hit;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-
-                    if (selectedHit == null)
-                    {
-                        foreach (var hit in hits)
-                        {
-                            if (hit.HitEntity != null)
-                            {
-                                MyVoxelBase voxel = hit.HitEntity as MyVoxelBase;
-                                if (voxel != null)
-                                {
-                                    selectedHit = hit;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-
-                    if (selectedHit != null)
-                    {
-
-                        if (hitGrid)
-                        {
-                            IMyCubeGrid grid = selectedHit.HitEntity as IMyCubeGrid;
-                            Vector3D centralPos = Vector3D.Zero;
-                            for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
-                            {
-                                var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
-                                centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
-                            }
-
-                            for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
-                            {
-                                var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
-                                centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
-                            }
-
-                            centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
-                            var centralAlt = Vector3D.Distance(centralPos, RTS.rtsInstance.nearPlanet.GetClosestSurfacePointGlobal(centralPos));
-
-                            var targetCentralUpVec = Vector3D.Normalize(selectedHit.Position - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
-                            var targetCentralLeftVec = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(targetCentralUpVec));
-                            var targetCentralPos = grid.WorldAABB.Center;
-
-                            currentTargetRender = new TargetRender(selectedHit.Position, targetCentralPos, targetCentralLeftVec, targetCentralUpVec,
-                                centralPos, this.Position, camPos ,grid);
-                        }
-                        else //Voxel
-                        {
-                            Vector3D centralPos = Vector3D.Zero;
-                            for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
-                            {
-                                var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
-                                centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
-                            }
-
-                            for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
-                            {
-                                var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
-                                centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
-                            }
-
-                            centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
-                            var centralAlt = Vector3D.Distance(centralPos, RTS.rtsInstance.nearPlanet.GetClosestSurfacePointGlobal(centralPos));
-
-                            var targetCentralUpVec = Vector3D.Normalize(selectedHit.Position - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
-                            var targetCentralLeftVec = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(targetCentralUpVec));
-                            var targetCentralPos = selectedHit.Position + (targetCentralUpVec * centralAlt);
-
-                            currentTargetRender = new TargetRender(selectedHit.Position, targetCentralPos, targetCentralLeftVec, targetCentralUpVec,
-                                centralPos, this.Position, camPos);
-                        }
-                    }
-
+                    var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
+                    centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
                 }
+
+                for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
+                {
+                    var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
+                    centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
+                }
+
+                centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
+
+                var centralPlane = new PlaneD(centralPos, Vector3D.Normalize(centralPos - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition()));
+                var centralPlaneIntersect = centralPlane.Intersection(ref camPos, ref dirFromCam);
+                var centralPlaneLeft = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(centralPlane.Normal));
+                var centralPlaneUp = Vector3D.Normalize(centralPlane.Normal);
+
+                currentTargetRender = new TargetRender(centralPlaneIntersect, centralPlaneIntersect, centralPlaneLeft, centralPlaneUp, centralPos, this.Position, camPos);
+
+                //var targetCentralUpVec = Vector3D.Normalize(selectedHit.Position - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
+                //var targetCentralLeftVec = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(targetCentralUpVec));
+                //var targetCentralPos = selectedHit.Position + (targetCentralUpVec * centralAlt);
+
+                //currentTargetRender = new TargetRender(selectedHit.Position, targetCentralPos, targetCentralLeftVec, targetCentralUpVec,
+                //    centralPos, this.Position, camPos);
+
+                //hits.Clear();
+                //MyAPIGateway.Physics.CastRay(camPos, camPos + (dirFromCam * 1000), hits);
+
+                //if (hits.Count > 0)
+                //{
+                //    hits.OrderBy(x => Vector3D.Distance(worldPos, x.Position));
+                //    IHitInfo selectedHit = null;
+                //    bool hitGrid = false;
+
+                //    foreach (var hit in hits)
+                //    {
+                //        if (hit.HitEntity != null)
+                //        {
+                //            IMyCubeGrid grid = hit.HitEntity as IMyCubeGrid;
+                //            if (grid != null && grid.Physics != null)
+                //            {
+                //                var rel = MyIDModule.GetRelationPlayerBlock(grid.BigOwners.FirstOrDefault(), MyAPIGateway.Session.Player.IdentityId);
+
+                //                if (rel == MyRelationsBetweenPlayerAndBlock.Enemies)
+                //                {
+                //                    hitGrid = true;
+                //                    selectedHit = hit;
+                //                    break;
+                //                }
+                //            }
+                //        }
+                //    }
+
+
+                //    if (selectedHit == null)
+                //    {
+                //        foreach (var hit in hits)
+                //        {
+                //            if (hit.HitEntity != null)
+                //            {
+                //                MyVoxelBase voxel = hit.HitEntity as MyVoxelBase;
+                //                if (voxel != null)
+                //                {
+                //                    selectedHit = hit;
+                //                    break;
+                //                }
+                //            }
+                //        }
+                //    }
+
+
+                //    if (selectedHit != null)
+                //    {
+
+                //        if (hitGrid)
+                //        {
+                //            IMyCubeGrid grid = selectedHit.HitEntity as IMyCubeGrid;
+                //            Vector3D centralPos = Vector3D.Zero;
+                //            for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
+                //            {
+                //                var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
+                //                centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
+                //            }
+
+                //            for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
+                //            {
+                //                var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
+                //                centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
+                //            }
+
+                //            centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
+                //            var centralAlt = Vector3D.Distance(centralPos, RTS.rtsInstance.nearPlanet.GetClosestSurfacePointGlobal(centralPos));
+
+                //            var targetCentralUpVec = Vector3D.Normalize(selectedHit.Position - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
+                //            var targetCentralLeftVec = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(targetCentralUpVec));
+                //            var targetCentralPos = grid.WorldAABB.Center;
+
+                //            currentTargetRender = new TargetRender(selectedHit.Position, targetCentralPos, targetCentralLeftVec, targetCentralUpVec,
+                //                centralPos, this.Position, camPos ,grid);
+                //        }
+                //        else //Voxel
+                //        {
+                //            Vector3D centralPos = Vector3D.Zero;
+                //            for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
+                //            {
+                //                var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
+                //                centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
+                //            }
+
+                //            for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
+                //            {
+                //                var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
+                //                centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
+                //            }
+
+                //            centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
+                //            var centralAlt = Vector3D.Distance(centralPos, RTS.rtsInstance.nearPlanet.GetClosestSurfacePointGlobal(centralPos));
+
+                //            var targetCentralUpVec = Vector3D.Normalize(selectedHit.Position - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
+                //            var targetCentralLeftVec = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(targetCentralUpVec));
+                //            var targetCentralPos = selectedHit.Position + (targetCentralUpVec * centralAlt);
+
+                //            currentTargetRender = new TargetRender(selectedHit.Position, targetCentralPos, targetCentralLeftVec, targetCentralUpVec,
+                //                centralPos, this.Position, camPos);
+                //        }
+                //    }
+
+                //}
             }
 
             if (MyAPIGateway.Input.IsNewRightMouseReleased())
@@ -701,12 +731,14 @@ namespace klime.RTS
                     var currentMousePos = this.Position;
                     var yDiff = 0.1 * (currentMousePos.Y - oldMousePos.Y);
 
-                    var currentAlt = (currentTargetRender.end - currentTargetRender.start).Length();
-                    var currentUpVec = Vector3D.Normalize(currentTargetRender.start - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
-                    var finalLength = MathHelperD.Max(currentAlt + yDiff, 0.5);
-                    var finalPos = currentTargetRender.start + (currentUpVec * (finalLength));
+                    //var currentAlt = (currentTargetRender.end - currentTargetRender.start).Length();
+                    //var currentUpVec = Vector3D.Normalize(currentTargetRender.start - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
+                    ////var finalLength = MathHelperD.Max(currentAlt + yDiff, 0.5);
+                    //var finalLength = currentAlt + yDiff;
+                    //var finalPos = currentTargetRender.start + (currentUpVec * yDiff);
 
-                    currentTargetRender.end = finalPos;
+                    var currentDir = Vector3D.Normalize(currentTargetRender.start - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
+                    currentTargetRender.end += currentDir * yDiff;
                     currentTargetRender.ComputeDimensions(camPos);
 
                     this.Offset = new Vector2(currentTargetRender.initScreenPos.X, this.Offset.Y);
@@ -1209,7 +1241,7 @@ namespace klime.RTS
                             focusAct.Apply(ingameTurret);
                         }
                     }
-                    MyAPIGateway.Utilities.ShowMessage("", $"Locked to: {targetGrid.DisplayName}");
+                    //MyAPIGateway.Utilities.ShowMessage("", $"Locked to: {targetGrid.DisplayName}");
                 }
             }
         }
@@ -1422,29 +1454,42 @@ namespace klime.RTS
                             var rotCurrent = mouse.Position;
                             var rotDiff = rotCurrent - rotPrev;
 
-                            if (rotDiff.LengthSquared() > 0)
-                            {
-                                rotVel += rotDiff;
-                            }
-                            else
-                            {
-                                rotVel = Vector2.Zero;
-                            }
+                            //if (rotDiff.LengthSquared() > 0)
+                            //{
+                            //    if (Math.Sign(rotDiff.X) != Math.Sign(rotVel.X))
+                            //    {
+                            //        rotVel.X = 0;
+                            //        MyAPIGateway.Utilities.ShowMessage("", "X Reset");
+                            //    }
 
+                            //    if (Math.Sign(rotDiff.Y) != Math.Sign(rotVel.Y))
+                            //    {
+                            //        rotVel.Y = 0;
+                            //        MyAPIGateway.Utilities.ShowMessage("", "Y Reset");
+                            //    }
+
+                            //    rotVel += rotDiff;
+                            //}
+                            //else
+                            //{
+                            //    rotVel = Vector2.Zero;
+                            //}
+
+                            //rotVel += rotDiff;
 
                             MatrixD xRotationMatrix = MatrixD.Identity;
                             MatrixD yRotationMatrix = MatrixD.Identity;
 
-                            if (Math.Abs(rotVel.X) > 0)
+                            if (Math.Abs(rotDiff.X) > 0)
                             {
                                 var focusAxis = Vector3D.Normalize(workingFocus - nearPlanet.PositionComp.GetPosition());
-                                xRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, -1 * rotVel.X * 0.0005);
+                                xRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, -1 * rotDiff.X * 0.005);
                             }
 
-                            if (Math.Abs(rotVel.Y) > 0)
+                            if (Math.Abs(rotDiff.Y) > 0)
                             {
                                 var focusAxis = workingMatrix.Right;
-                                yRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, rotVel.Y * 0.0005);
+                                yRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, rotDiff.Y * 0.005);
                             }
 
 
@@ -1454,18 +1499,20 @@ namespace klime.RTS
                             var fAxis = Vector3D.Normalize(fPos - nearPlanet.PositionComp.GetPosition());
                             var fForward = Vector3D.Normalize(workingFocus - fPos);
 
-                            var fPoint = fPos + fForward;
-                            var fPlane = new PlaneD(fPos, fAxis);
-                            var fSurfaceForward = Vector3D.Normalize(fPos - fPlane.ProjectPoint(ref fPoint));
+                            //var fPoint = fPos + fForward;
+                            //var fPlane = new PlaneD(fPos, fAxis);
+                            //var fSurfaceForward = Vector3D.Normalize(fPos - fPlane.ProjectPoint(ref fPoint));
 
-                            var fAngle = MyUtils.GetAngleBetweenVectors(fForward, fSurfaceForward);
+                            //var fAngle = MyUtils.GetAngleBetweenVectors(fForward, fSurfaceForward);
 
-                            if (fAngle > (Math.PI/2 + 0.1) && fAngle < 2.7)
-                            {
-                                var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
-                                workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
-                            }
+                            //if (fAngle > (Math.PI / 2 + 0.1) && fAngle < 2.7)
+                            //{
+                            //    var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
+                            //    workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
+                            //}
 
+                            var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
+                            workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
                             rotPrev = mouse.Position;
                         }
                     }
@@ -1618,7 +1665,6 @@ namespace klime.RTS
 
                 ComputeWorkingDistance();
                 spectator.SetTarget(workingFocus, workingMatrix.Up);
-                //MyAPIGateway.Utilities.ShowNotification($"Working focus: {workingFocus}", 16, "White");
                 if (!MyAPIGateway.Session.IsCameraUserControlledSpectator)
                 {
                     MyAPIGateway.Session.SetCameraController(MyCameraControllerEnum.Spectator, null);
@@ -1710,27 +1756,30 @@ namespace klime.RTS
             workingHits.Clear();
 
             var camMat = MyAPIGateway.Session.Camera.WorldMatrix;
-            MyAPIGateway.Physics.CastRay(camMat.Translation, camMat.Translation + (camMat.Forward * 1000), workingHits);
+            //MyAPIGateway.Physics.CastRay(camMat.Translation, camMat.Translation + (camMat.Forward * 1000), workingHits);
 
-            MyVoxelBase hitVoxel = null;
-            Vector3D hitVoxelPos = Vector3D.Zero;
-            foreach (var hit in workingHits)
-            {
-                if (hit != null && hit.HitEntity != null && hit.HitEntity is MyVoxelBase)
-                {
-                    hitVoxel = hit.HitEntity as MyVoxelBase;
-                    hitVoxelPos = hit.Position;
-                    break;
-                }
-            }
+            //MyVoxelBase hitVoxel = null;
+            //Vector3D hitVoxelPos = Vector3D.Zero;
+            //foreach (var hit in workingHits)
+            //{
+            //    if (hit != null && hit.HitEntity != null && hit.HitEntity is MyVoxelBase)
+            //    {
+            //        hitVoxel = hit.HitEntity as MyVoxelBase;
+            //        hitVoxelPos = hit.Position;
+            //        break;
+            //    }
+            //}
 
-            double dist = 1000;
-            if (hitVoxel != null)
-            {
-                dist = Vector3D.Distance(hitVoxelPos, camMat.Translation);
-            }
+            //double dist = 1000;
+            //if (hitVoxel != null)
+            //{
+            //    dist = Vector3D.Distance(hitVoxelPos, camMat.Translation);
+            //}
 
-            workingFocus = spectator.Position + (workingMatrix.Forward * dist);
+            var planPos = nearPlanet.GetClosestSurfacePointGlobal(camMat.Translation);
+            double dist = Vector3D.Distance(planPos, camMat.Translation);
+
+            workingFocus = spectator.Position + (workingMatrix.Forward * (dist * 1.5));
         }
 
         private bool ValidateInput()
