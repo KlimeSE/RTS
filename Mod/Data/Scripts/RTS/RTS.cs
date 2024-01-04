@@ -1474,17 +1474,17 @@ namespace klime.RTS
                 //var planetCenter = nearPlanet.PositionComp.GetPosition();
                 //var fromPlanetVec = Vector3D.Normalize(spectator.Position - planetCenter);
 
-                //MyQuadD planeQuad = new MyQuadD();
-                //var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(freezePlane.Normal));
-                //var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, freezePlane.Normal));
+                MyQuadD planeQuad = new MyQuadD();
+                var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(freezePlane.Normal));
+                var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, freezePlane.Normal));
 
-                //planeQuad.Point0 = freezeMatrix.Translation + (freezeRight * 1000) + (freezeForward * 1000);
-                //planeQuad.Point1 = freezeMatrix.Translation + (freezeRight * 1000) + (-1 * freezeForward * 1000);
-                //planeQuad.Point2 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
-                //planeQuad.Point3 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (freezeForward * 1000);
-                //Vector3D vctP = planeQuad.Point0;
-                //Vector4 col = new Vector4(1, 1, 1, 0.3f);
-                //MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("SquareFullColor"), ref planeQuad, col, ref vctP);
+                planeQuad.Point0 = freezeMatrix.Translation + (freezeRight * 1000) + (freezeForward * 1000);
+                planeQuad.Point1 = freezeMatrix.Translation + (freezeRight * 1000) + (-1 * freezeForward * 1000);
+                planeQuad.Point2 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
+                planeQuad.Point3 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (freezeForward * 1000);
+                Vector3D vctP = planeQuad.Point0;
+                Vector4 col = new Vector4(1, 1, 1, 0.3f);
+                MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("SquareFullColor"), ref planeQuad, col, ref vctP);
 
                 PlaneD surfacePlane = new PlaneD(spectator.Position, freezePlane.Normal);
                 bool needsMove = false;
