@@ -541,38 +541,38 @@ namespace klime.RTS
                 }
             }
             
-            if (RTS.rtsInstance.selectedGridIndicies.Count > 0)
-            {
-                Vector3D centralPos = Vector3D.Zero;
-                for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
-                {
-                    var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
-                    centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
-                }
+            //if (RTS.rtsInstance.selectedGridIndicies.Count > 0)
+            //{
+            //    Vector3D centralPos = Vector3D.Zero;
+            //    for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
+            //    {
+            //        var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
+            //        centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
+            //    }
 
-                for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
-                {
-                    var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
-                    centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
-                }
+            //    for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
+            //    {
+            //        var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
+            //        centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
+            //    }
 
-                centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
+            //    centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
 
-                //var centralPlane = new PlaneD(centralPos, Vector3D.Normalize(centralPos - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition()));
-                var centralPlane = new PlaneD(centralPos, RTS.rtsInstance.freezePlane.Normal);
-                MyQuadD planeQuad = new MyQuadD();
-                var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(centralPlane.Normal));
-                var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, centralPlane.Normal));
+            //    //var centralPlane = new PlaneD(centralPos, Vector3D.Normalize(centralPos - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition()));
+            //    var centralPlane = new PlaneD(centralPos, RTS.rtsInstance.freezePlane.Normal);
+            //    MyQuadD planeQuad = new MyQuadD();
+            //    var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(centralPlane.Normal));
+            //    var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, centralPlane.Normal));
 
-                planeQuad.Point0 = centralPos + (freezeRight * 1000) + (freezeForward * 1000);
-                planeQuad.Point1 = centralPos + (freezeRight * 1000) + (-1 * freezeForward * 1000);
-                planeQuad.Point2 = centralPos + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
-                planeQuad.Point3 = centralPos + (-1 * freezeRight * 1000) + (freezeForward * 1000);
+            //    planeQuad.Point0 = centralPos + (freezeRight * 1000) + (freezeForward * 1000);
+            //    planeQuad.Point1 = centralPos + (freezeRight * 1000) + (-1 * freezeForward * 1000);
+            //    planeQuad.Point2 = centralPos + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
+            //    planeQuad.Point3 = centralPos + (-1 * freezeRight * 1000) + (freezeForward * 1000);
 
-                Vector3D vctP = planeQuad.Point0;
-                Vector4 col = new Color(Color.SkyBlue, 0.8f);
-                MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("Square"), ref planeQuad, col, ref vctP, -1, VRageRender.MyBillboard.BlendTypeEnum.Standard);
-            }
+            //    Vector3D vctP = planeQuad.Point0;
+            //    Vector4 col = new Color(Color.SkyBlue, 0.8f);
+            //    MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("Square"), ref planeQuad, col, ref vctP, -1, VRageRender.MyBillboard.BlendTypeEnum.Standard);
+            //}
 
 
             if (MyAPIGateway.Input.IsNewRightMousePressed())
@@ -1525,66 +1525,74 @@ namespace klime.RTS
 
                 var inputVec = MyAPIGateway.Input.GetPositionDelta();
 
-                //Rotation
-                if (MyAPIGateway.Input.IsLeftMousePressed())
+                ////Rotation
+                //if (MyAPIGateway.Input.IsLeftMousePressed())
+                //{
+                    
+                //}
+
+                if (MyAPIGateway.Input.IsKeyPress(MyKeys.R) && validInputThisTick)
                 {
-                    if (MyAPIGateway.Input.IsKeyPress(MyKeys.R))
+                    if (!isRotating)
                     {
-                        if (!isRotating)
+                        isRotating = true;
+                        rotPrev = mouse.Position;
+                    }
+
+                    if (isRotating)
+                    {
+                        var rotCurrent = mouse.Position;
+                        var rotDiff = rotCurrent - rotPrev;
+
+                        MatrixD xRotationMatrix = MatrixD.Identity;
+                        MatrixD yRotationMatrix = MatrixD.Identity;
+
+                        if (Math.Abs(rotDiff.X) > 0)
                         {
-                            isRotating = true;
-                            rotPrev = mouse.Position;
+                            //var focusAxis = Vector3D.Normalize(workingFocus - nearPlanet.PositionComp.GetPosition());
+                            var focusAxis = freezePlane.Normal;
+                            xRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, -1 * rotDiff.X * 0.005);
                         }
 
-                        if (isRotating)
+                        if (Math.Abs(rotDiff.Y) > 0)
                         {
-                            var rotCurrent = mouse.Position;
-                            var rotDiff = rotCurrent - rotPrev;
-
-                            MatrixD xRotationMatrix = MatrixD.Identity;
-                            MatrixD yRotationMatrix = MatrixD.Identity;
-
-                            if (Math.Abs(rotDiff.X) > 0)
-                            {
-                                //var focusAxis = Vector3D.Normalize(workingFocus - nearPlanet.PositionComp.GetPosition());
-                                var focusAxis = freezePlane.Normal;
-                                xRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, -1 * rotDiff.X * 0.005);
-                            }
-
-                            if (Math.Abs(rotDiff.Y) > 0)
-                            {
-                                var focusAxis = workingMatrix.Right;
-                                yRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, rotDiff.Y * 0.005);
-                            }
-
-
-                            var focusRotationMatrix = xRotationMatrix * yRotationMatrix;
-
-                            var fPos = workingFocus + Vector3D.Rotate(workingMatrix.Translation - workingFocus, focusRotationMatrix);
-                            //var fAxis = Vector3D.Normalize(fPos - nearPlanet.PositionComp.GetPosition());
-                            var fAxis = freezePlane.Normal;
-                            var fForward = Vector3D.Normalize(workingFocus - fPos);
-
-                            //var fPoint = fPos + fForward;
-                            //var fPlane = new PlaneD(fPos, fAxis);
-                            //var fSurfaceForward = Vector3D.Normalize(fPos - fPlane.ProjectPoint(ref fPoint));
-
-                            //var fAngle = MyUtils.GetAngleBetweenVectors(fForward, fSurfaceForward);
-
-                            //if (fAngle > (Math.PI / 2 + 0.1) && fAngle < 2.7)
-                            //{
-                            //    var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
-                            //    workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
-                            //}
-
-                            var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
-                            workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
-                            rotPrev = mouse.Position;
+                            var focusAxis = workingMatrix.Right;
+                            yRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, rotDiff.Y * 0.005);
                         }
+
+
+                        var focusRotationMatrix = xRotationMatrix * yRotationMatrix;
+
+                        var fPos = workingFocus + Vector3D.Rotate(workingMatrix.Translation - workingFocus, focusRotationMatrix);
+                        //var fAxis = Vector3D.Normalize(fPos - nearPlanet.PositionComp.GetPosition());
+                        var fAxis = freezePlane.Normal;
+                        var fForward = Vector3D.Normalize(workingFocus - fPos);
+
+                        //var fPoint = fPos + fForward;
+                        //var fPlane = new PlaneD(fPos, fAxis);
+                        //var fSurfaceForward = Vector3D.Normalize(fPos - fPlane.ProjectPoint(ref fPoint));
+
+                        //var fAngle = MyUtils.GetAngleBetweenVectors(fForward, fSurfaceForward);
+
+                        //if (fAngle > (Math.PI / 2 + 0.1) && fAngle < 2.7)
+                        //{
+                        //    var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
+                        //    workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
+                        //}
+
+                        var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
+                        workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
+                        rotPrev = mouse.Position;
+                    }
+                }
+                else
+                {
+                    if (isRotating)
+                    {
+                        isRotating = false;
                     }
                 }
 
-                
                 //Movement
                 Vector3D camForward = spectator.Position + workingMatrix.Forward;
                 Vector3D camBackward = spectator.Position + workingMatrix.Backward;
@@ -1798,6 +1806,11 @@ namespace klime.RTS
             {
                 mouse?.Close();
                 mouse = null;
+
+                //Selected grids
+                selectedCharIndicies.Clear();
+                selectedGridIndicies.Clear();
+
 
                 //Available grids
                 foreach (var avGrid in availableGrids)
