@@ -1525,68 +1525,66 @@ namespace klime.RTS
 
                 var inputVec = MyAPIGateway.Input.GetPositionDelta();
 
-                ////Rotation
-                //if (MyAPIGateway.Input.IsLeftMousePressed())
-                //{
-                    
-                //}
-
-                if (MyAPIGateway.Input.IsKeyPress(MyKeys.R))
+                //Rotation
+                if (MyAPIGateway.Input.IsLeftMousePressed())
                 {
-                    if (!isRotating)
+                    if (MyAPIGateway.Input.IsKeyPress(MyKeys.R))
                     {
-                        isRotating = true;
-                        rotPrev = mouse.Position;
-                    }
-
-                    if (isRotating)
-                    {
-                        var rotCurrent = mouse.Position;
-                        var rotDiff = rotCurrent - rotPrev;
-
-                        MatrixD xRotationMatrix = MatrixD.Identity;
-                        MatrixD yRotationMatrix = MatrixD.Identity;
-
-                        if (Math.Abs(rotDiff.X) > 0)
+                        if (!isRotating)
                         {
-                            //var focusAxis = Vector3D.Normalize(workingFocus - nearPlanet.PositionComp.GetPosition());
-                            var focusAxis = freezePlane.Normal;
-                            xRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, -1 * rotDiff.X * 0.005);
+                            isRotating = true;
+                            rotPrev = mouse.Position;
                         }
 
-                        if (Math.Abs(rotDiff.Y) > 0)
+                        if (isRotating)
                         {
-                            var focusAxis = workingMatrix.Right;
-                            yRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, rotDiff.Y * 0.005);
+                            var rotCurrent = mouse.Position;
+                            var rotDiff = rotCurrent - rotPrev;
+
+                            MatrixD xRotationMatrix = MatrixD.Identity;
+                            MatrixD yRotationMatrix = MatrixD.Identity;
+
+                            if (Math.Abs(rotDiff.X) > 0)
+                            {
+                                //var focusAxis = Vector3D.Normalize(workingFocus - nearPlanet.PositionComp.GetPosition());
+                                var focusAxis = freezePlane.Normal;
+                                xRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, -1 * rotDiff.X * 0.005);
+                            }
+
+                            if (Math.Abs(rotDiff.Y) > 0)
+                            {
+                                var focusAxis = workingMatrix.Right;
+                                yRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, rotDiff.Y * 0.005);
+                            }
+
+
+                            var focusRotationMatrix = xRotationMatrix * yRotationMatrix;
+
+                            var fPos = workingFocus + Vector3D.Rotate(workingMatrix.Translation - workingFocus, focusRotationMatrix);
+                            //var fAxis = Vector3D.Normalize(fPos - nearPlanet.PositionComp.GetPosition());
+                            var fAxis = freezePlane.Normal;
+                            var fForward = Vector3D.Normalize(workingFocus - fPos);
+
+                            //var fPoint = fPos + fForward;
+                            //var fPlane = new PlaneD(fPos, fAxis);
+                            //var fSurfaceForward = Vector3D.Normalize(fPos - fPlane.ProjectPoint(ref fPoint));
+
+                            //var fAngle = MyUtils.GetAngleBetweenVectors(fForward, fSurfaceForward);
+
+                            //if (fAngle > (Math.PI / 2 + 0.1) && fAngle < 2.7)
+                            //{
+                            //    var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
+                            //    workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
+                            //}
+
+                            var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
+                            workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
+                            rotPrev = mouse.Position;
                         }
-
-
-                        var focusRotationMatrix = xRotationMatrix * yRotationMatrix;
-
-                        var fPos = workingFocus + Vector3D.Rotate(workingMatrix.Translation - workingFocus, focusRotationMatrix);
-                        //var fAxis = Vector3D.Normalize(fPos - nearPlanet.PositionComp.GetPosition());
-                        var fAxis = freezePlane.Normal;
-                        var fForward = Vector3D.Normalize(workingFocus - fPos);
-
-                        //var fPoint = fPos + fForward;
-                        //var fPlane = new PlaneD(fPos, fAxis);
-                        //var fSurfaceForward = Vector3D.Normalize(fPos - fPlane.ProjectPoint(ref fPoint));
-
-                        //var fAngle = MyUtils.GetAngleBetweenVectors(fForward, fSurfaceForward);
-
-                        //if (fAngle > (Math.PI / 2 + 0.1) && fAngle < 2.7)
-                        //{
-                        //    var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
-                        //    workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
-                        //}
-
-                        var fUp = Vector3D.Normalize(RotateVectorTowards(fForward, fAxis, Math.PI / 2));
-                        workingMatrix = MatrixD.CreateWorld(fPos, fForward, fUp);
-                        rotPrev = mouse.Position;
                     }
                 }
 
-
+                
                 //Movement
                 Vector3D camForward = spectator.Position + workingMatrix.Forward;
                 Vector3D camBackward = spectator.Position + workingMatrix.Backward;
