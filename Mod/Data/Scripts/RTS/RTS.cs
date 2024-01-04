@@ -541,6 +541,40 @@ namespace klime.RTS
                 }
             }
             
+            if (RTS.rtsInstance.selectedGridIndicies.Count > 0)
+            {
+                Vector3D centralPos = Vector3D.Zero;
+                for (int i = 0; i < RTS.rtsInstance.selectedGridIndicies.Count; i++)
+                {
+                    var avIndex = RTS.rtsInstance.selectedGridIndicies[i];
+                    centralPos += RTS.rtsInstance.availableGrids[avIndex].grid.WorldMatrix.Translation;
+                }
+
+                for (int i = 0; i < RTS.rtsInstance.selectedCharIndicies.Count; i++)
+                {
+                    var avIndex = RTS.rtsInstance.selectedCharIndicies[i];
+                    centralPos += RTS.rtsInstance.avaiableCharacters[avIndex].character.WorldAABB.Center;
+                }
+
+                centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
+
+                //var centralPlane = new PlaneD(centralPos, Vector3D.Normalize(centralPos - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition()));
+                var centralPlane = new PlaneD(centralPos, RTS.rtsInstance.freezePlane.Normal);
+                MyQuadD planeQuad = new MyQuadD();
+                var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(centralPlane.Normal));
+                var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, centralPlane.Normal));
+
+                planeQuad.Point0 = centralPos + (freezeRight * 1000) + (freezeForward * 1000);
+                planeQuad.Point1 = centralPos + (freezeRight * 1000) + (-1 * freezeForward * 1000);
+                planeQuad.Point2 = centralPos + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
+                planeQuad.Point3 = centralPos + (-1 * freezeRight * 1000) + (freezeForward * 1000);
+
+                Vector3D vctP = planeQuad.Point0;
+                Vector4 col = new Color(Color.SkyBlue, 0.8f);
+                MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("Square"), ref planeQuad, col, ref vctP, -1, VRageRender.MyBillboard.BlendTypeEnum.Standard);
+            }
+
+
             if (MyAPIGateway.Input.IsNewRightMousePressed())
             {
                 Vector3D worldPos = new Vector3D(this.Position.X, this.Position.Y, -0.00000001);
@@ -1474,17 +1508,17 @@ namespace klime.RTS
                 //var planetCenter = nearPlanet.PositionComp.GetPosition();
                 //var fromPlanetVec = Vector3D.Normalize(spectator.Position - planetCenter);
 
-                MyQuadD planeQuad = new MyQuadD();
-                var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(freezePlane.Normal));
-                var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, freezePlane.Normal));
+                //MyQuadD planeQuad = new MyQuadD();
+                //var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(freezePlane.Normal));
+                //var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, freezePlane.Normal));
 
-                planeQuad.Point0 = freezeMatrix.Translation + (freezeRight * 1000) + (freezeForward * 1000);
-                planeQuad.Point1 = freezeMatrix.Translation + (freezeRight * 1000) + (-1 * freezeForward * 1000);
-                planeQuad.Point2 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
-                planeQuad.Point3 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (freezeForward * 1000);
-                Vector3D vctP = planeQuad.Point0;
-                Vector4 col = new Vector4(1, 1, 1, 0.3f);
-                MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("SquareFullColor"), ref planeQuad, col, ref vctP);
+                //planeQuad.Point0 = freezeMatrix.Translation + (freezeRight * 1000) + (freezeForward * 1000);
+                //planeQuad.Point1 = freezeMatrix.Translation + (freezeRight * 1000) + (-1 * freezeForward * 1000);
+                //planeQuad.Point2 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
+                //planeQuad.Point3 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (freezeForward * 1000);
+                //Vector3D vctP = planeQuad.Point0;
+                //Vector4 col = new Vector4(1, 1, 1, 0.5f);
+                //MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("SquareFullColor"), ref planeQuad, col, ref vctP, -1, VRageRender.MyBillboard.BlendTypeEnum.PostPP);
 
                 PlaneD surfacePlane = new PlaneD(spectator.Position, freezePlane.Normal);
                 bool needsMove = false;
