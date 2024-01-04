@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using AiEnabled.API;
 using ProtoBuf;
 using RichHudFramework.Client;
@@ -562,7 +563,8 @@ namespace klime.RTS
 
                 centralPos *= (1d / (RTS.rtsInstance.selectedGridIndicies.Count + RTS.rtsInstance.selectedCharIndicies.Count));
 
-                var centralPlane = new PlaneD(centralPos, Vector3D.Normalize(centralPos - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition()));
+                //var centralPlane = new PlaneD(centralPos, Vector3D.Normalize(centralPos - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition()));
+                var centralPlane = new PlaneD(centralPos, RTS.rtsInstance.freezePlane.Normal);
                 var centralPlaneIntersect = centralPlane.Intersection(ref camPos, ref dirFromCam);
                 var centralPlaneLeft = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(centralPlane.Normal));
                 var centralPlaneUp = Vector3D.Normalize(centralPlane.Normal);
@@ -728,17 +730,37 @@ namespace klime.RTS
                 if (currentTargetRender != null && currentTargetRender.lockTargetGrid == null)
                 {
                     var oldMousePos = currentTargetRender.initScreenPos;
-                    var currentMousePos = this.Position;
-                    var yDiff = 0.1 * (currentMousePos.Y - oldMousePos.Y);
+                    var yDiff = this.Position.Y - oldMousePos.Y;
+                    //this.Offset = new Vector2(currentTargetRender.initScreenPos.X, this.Offset.Y);
+
+                    //Vector3D worldPos = new Vector3D(this.Position.X, this.Position.Y, -0.00000001);
+                    //worldPos = Vector3D.Transform(worldPos, this.HudSpace.PlaneToWorld);
+                    //var dirFromCam = Vector3D.Normalize(worldPos - camPos);
+
+                    //Vector3D verticalCameraProject = RTS.rtsInstance.freezePlane.ProjectPoint(ref camPos);
+                    //Vector3D verticalDir = Vector3D.Normalize(verticalCameraProject - currentTargetRender.start);
+                    //PlaneD verticalPlane = new PlaneD(currentTargetRender.start, verticalDir);
+
+                    //var verticalIntersect = verticalPlane.Intersection(ref camPos, ref dirFromCam);
+                    //LineD line = new LineD(currentTargetRender.start, currentTargetRender.start + RTS.rtsInstance.freezePlane.Normal * 1000000);
+                    //Vector3D linePointA = line.From;
+                    //Vector3D linePointB = line.To;
+                    //Vector3D closestPoint = MyUtils.GetClosestPointOnLine(ref linePointA, ref linePointB, ref verticalIntersect);
+                    //currentTargetRender.end = closestPoint;
+                    //currentTargetRender.ComputeDimensions(camPos);
+                    //currentTargetRender.initScreenPos = this.Position;
 
                     //var currentAlt = (currentTargetRender.end - currentTargetRender.start).Length();
                     //var currentUpVec = Vector3D.Normalize(currentTargetRender.start - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
-                    ////var finalLength = MathHelperD.Max(currentAlt + yDiff, 0.5);
+                    //var finalLength = MathHelperD.Max(currentAlt + yDiff, 0.5);
                     //var finalLength = currentAlt + yDiff;
                     //var finalPos = currentTargetRender.start + (currentUpVec * yDiff);
 
-                    var currentDir = Vector3D.Normalize(currentTargetRender.start - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
-                    currentTargetRender.end += currentDir * yDiff;
+                    //var currentDir = Vector3D.Normalize(currentTargetRender.start - RTS.rtsInstance.nearPlanet.PositionComp.GetPosition());
+                    var currentDir = RTS.rtsInstance.freezePlane.Normal;
+                    var currentDist = MathHelperD.Clamp(0.001 * Vector3D.Distance(currentTargetRender.start, camPos), 0.1, 5);
+
+                    currentTargetRender.end += currentDir * yDiff * currentDist;
                     currentTargetRender.ComputeDimensions(camPos);
 
                     this.Offset = new Vector2(currentTargetRender.initScreenPos.X, this.Offset.Y);
@@ -1125,25 +1147,26 @@ namespace klime.RTS
         public ViewState currentViewState = ViewState.Idle;
         bool validInputThisTick = false;
         MySpectator spectator;
-        public MyPlanet nearPlanet;
+        //public MyPlanet nearPlanet;
         int viewAnimFrame;
         int maxViewAnimFrame = 60;
+        double viewDefaultDistance = 25;
+
         public MatrixD freezeMatrix = MatrixD.Identity;
+        public PlaneD freezePlane = new PlaneD(Vector3D.Zero, Vector3D.Zero);
         public MatrixD workingMatrix = MatrixD.Identity;
         public Vector3D workingFocus = Vector3D.Zero;
         public Vector3D workingCameraVelocity = Vector3D.Zero;
-        public List<IHitInfo> workingHits = new List<IHitInfo>();
 
         double spectatorScaling = (5.0 / 3.0) * 0.35;
 
         //Rotation vars
         public Vector2 rotPrev;
-        public Vector2 rotVel;
         public bool isRotating = false;
 
-        double pHeightMin = 10;
-        double pHeightMax = 200;
-        double pHeightDefault = 25;
+        //double pHeightMin = 10;
+        //double pHeightMax = 200;
+        //double pHeightDefault = 25;
 
         public List<RTSGrid> availableGrids = new List<RTSGrid>();
         public List<RTSCharacter> avaiableCharacters = new List<RTSCharacter>();
@@ -1394,11 +1417,11 @@ namespace klime.RTS
                 {
                     MyAPIGateway.Session.SetCameraController(MyCameraControllerEnum.Spectator, null, charac.WorldMatrix.Translation);
                     spectator = MyAPIGateway.Session.CameraController as MySpectator;
-                    nearPlanet = MyGamePruningStructure.GetClosestPlanet(charac.WorldMatrix.Translation);
+                    //nearPlanet = MyGamePruningStructure.GetClosestPlanet(charac.WorldMatrix.Translation);
                     MyVisualScriptLogicProvider.SetHudState(0, 0);
                 }
 
-                if (spectator == null || nearPlanet == null)
+                if (spectator == null/* || nearPlanet == null*/)
                 {
                     currentViewState = ViewState.GoToIdle;
                     return;
@@ -1406,14 +1429,32 @@ namespace klime.RTS
 
                 if (viewAnimFrame < maxViewAnimFrame)
                 {
-                    var direction = Vector3D.Normalize(charac.WorldMatrix.Backward + charac.WorldMatrix.Right + (charac.WorldMatrix.Up * 2));
-                    var upVec = Vector3D.Normalize(charac.WorldMatrix.Forward + charac.WorldMatrix.Left + (charac.WorldMatrix.Up * 2));
+                    Vector3D moveDirection = Vector3D.Zero;
+                    Vector3D upViewDirection = Vector3D.Zero;
+                    float interf = 0f;
+                    Vector3D grav = MyAPIGateway.Physics.CalculateNaturalGravityAt(charac.WorldMatrix.Translation, out interf);
+                    if (grav.LengthSquared() > 0) //On planet
+                    {
+                        upViewDirection = -1 * Vector3D.Normalize(grav);
+                        
+                        var rightMoveDirection = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(upViewDirection));
+                        var backMoveDirection = Vector3D.Normalize(Vector3D.Cross(rightMoveDirection, upViewDirection));
 
-                    var finalPosition = charac.WorldAABB.Center + (direction * pHeightDefault);
+                        moveDirection = Vector3D.Normalize(backMoveDirection + rightMoveDirection + (upViewDirection * 2));
+                    }
+                    else
+                    {
+                        moveDirection = Vector3D.Normalize(charac.WorldMatrix.Backward + charac.WorldMatrix.Right + (charac.WorldMatrix.Up * 2));
+                        upViewDirection = Vector3D.Normalize(charac.WorldMatrix.Up);
+                    }
+
+                    var finalPosition = charac.WorldAABB.Center + (moveDirection * viewDefaultDistance);
                     var realRatio = (double)viewAnimFrame / maxViewAnimFrame;
                     var easingRatio = OutQuint((float)realRatio);
-                    spectator.SetTarget(charac.WorldAABB.Center, upVec);
+                    spectator.SetTarget(charac.WorldAABB.Center, upViewDirection);
                     spectator.Position = Vector3D.Lerp(charac.WorldAABB.Center, finalPosition, easingRatio);
+
+                    freezePlane = new PlaneD(spectator.Position, upViewDirection);
                     viewAnimFrame += 1;
                 }
                 else
@@ -1430,9 +1471,22 @@ namespace klime.RTS
 
             if (currentViewState == ViewState.InView)
             {
-                var planetCenter = nearPlanet.PositionComp.GetPosition();
-                var fromPlanetVec = Vector3D.Normalize(spectator.Position - planetCenter);
-                PlaneD surfacePlane = new PlaneD(spectator.Position, fromPlanetVec);
+                //var planetCenter = nearPlanet.PositionComp.GetPosition();
+                //var fromPlanetVec = Vector3D.Normalize(spectator.Position - planetCenter);
+
+                //MyQuadD planeQuad = new MyQuadD();
+                //var freezeRight = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(freezePlane.Normal));
+                //var freezeForward = Vector3D.Normalize(Vector3D.Cross(freezeRight, freezePlane.Normal));
+
+                //planeQuad.Point0 = freezeMatrix.Translation + (freezeRight * 1000) + (freezeForward * 1000);
+                //planeQuad.Point1 = freezeMatrix.Translation + (freezeRight * 1000) + (-1 * freezeForward * 1000);
+                //planeQuad.Point2 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (-1 * freezeForward * 1000);
+                //planeQuad.Point3 = freezeMatrix.Translation + (-1 * freezeRight * 1000) + (freezeForward * 1000);
+                //Vector3D vctP = planeQuad.Point0;
+                //Vector4 col = new Vector4(1, 1, 1, 0.3f);
+                //MyTransparentGeometry.AddQuad(MyStringId.GetOrCompute("SquareFullColor"), ref planeQuad, col, ref vctP);
+
+                PlaneD surfacePlane = new PlaneD(spectator.Position, freezePlane.Normal);
                 bool needsMove = false;
 
                 var inputVec = MyAPIGateway.Input.GetPositionDelta();
@@ -1446,7 +1500,6 @@ namespace klime.RTS
                         {
                             isRotating = true;
                             rotPrev = mouse.Position;
-                            rotVel = Vector2.Zero;
                         }
 
                         if (isRotating)
@@ -1454,35 +1507,13 @@ namespace klime.RTS
                             var rotCurrent = mouse.Position;
                             var rotDiff = rotCurrent - rotPrev;
 
-                            //if (rotDiff.LengthSquared() > 0)
-                            //{
-                            //    if (Math.Sign(rotDiff.X) != Math.Sign(rotVel.X))
-                            //    {
-                            //        rotVel.X = 0;
-                            //        MyAPIGateway.Utilities.ShowMessage("", "X Reset");
-                            //    }
-
-                            //    if (Math.Sign(rotDiff.Y) != Math.Sign(rotVel.Y))
-                            //    {
-                            //        rotVel.Y = 0;
-                            //        MyAPIGateway.Utilities.ShowMessage("", "Y Reset");
-                            //    }
-
-                            //    rotVel += rotDiff;
-                            //}
-                            //else
-                            //{
-                            //    rotVel = Vector2.Zero;
-                            //}
-
-                            //rotVel += rotDiff;
-
                             MatrixD xRotationMatrix = MatrixD.Identity;
                             MatrixD yRotationMatrix = MatrixD.Identity;
 
                             if (Math.Abs(rotDiff.X) > 0)
                             {
-                                var focusAxis = Vector3D.Normalize(workingFocus - nearPlanet.PositionComp.GetPosition());
+                                //var focusAxis = Vector3D.Normalize(workingFocus - nearPlanet.PositionComp.GetPosition());
+                                var focusAxis = freezePlane.Normal;
                                 xRotationMatrix = MatrixD.CreateFromAxisAngle(focusAxis, -1 * rotDiff.X * 0.005);
                             }
 
@@ -1496,7 +1527,8 @@ namespace klime.RTS
                             var focusRotationMatrix = xRotationMatrix * yRotationMatrix;
 
                             var fPos = workingFocus + Vector3D.Rotate(workingMatrix.Translation - workingFocus, focusRotationMatrix);
-                            var fAxis = Vector3D.Normalize(fPos - nearPlanet.PositionComp.GetPosition());
+                            //var fAxis = Vector3D.Normalize(fPos - nearPlanet.PositionComp.GetPosition());
+                            var fAxis = freezePlane.Normal;
                             var fForward = Vector3D.Normalize(workingFocus - fPos);
 
                             //var fPoint = fPos + fForward;
@@ -1534,7 +1566,7 @@ namespace klime.RTS
 
                     if (validInputThisTick && inputVec.LengthSquared() > 0)
                     {
-                        workingCameraVelocity += inputVec.X * workingMatrix.Right + inputVec.Z * surfaceBackward;
+                        workingCameraVelocity += inputVec.X * workingMatrix.Right + inputVec.Y * freezePlane.Normal + inputVec.Z * surfaceBackward;
                         needsMove = true;
                     }
 
@@ -1599,28 +1631,29 @@ namespace klime.RTS
                     }
                 }
 
-                //Zero special
-                if (inputVec.Y == 1 && validInputThisTick)
-                {
-                    workingMatrix = freezeMatrix;
-                    workingCameraVelocity = Vector3D.Zero;
-                    needsMove = true;
-                }
+                ////Zero special
+                //if (inputVec.Y == 1 && validInputThisTick)
+                //{
+                //    workingMatrix = freezeMatrix;
+                //    workingCameraVelocity = Vector3D.Zero;
+                //    needsMove = true;
+                //}
 
 
                 spectator.SpeedModeLinear = Math.Min(spectator.SpeedModeLinear, 50);
 
-                Vector3D currentSurfacePos = nearPlanet.GetClosestSurfacePointGlobal(spectator.Position);
-                var currentHeight = Vector3D.Distance(currentSurfacePos, workingMatrix.Translation);
-                var heightAboveMin = currentHeight - pHeightMin;
-                var heightDiff = pHeightMax - pHeightMin;
-                var heightRatio = MathHelper.Lerp(0, 1, heightAboveMin / heightDiff);
+                //Vector3D currentSurfacePos = nearPlanet.GetClosestSurfacePointGlobal(spectator.Position);
+                //var currentHeight = Vector3D.Distance(currentSurfacePos, workingMatrix.Translation);
+                //var heightAboveMin = currentHeight - pHeightMin;
+                //var heightDiff = pHeightMax - pHeightMin;
+                //var heightRatio = MathHelper.Lerp(0, 1, heightAboveMin / heightDiff);
 
                 if (needsMove)
                 {
                     if (workingCameraVelocity.Length() > 0)
                     {
-                        var heightSpeed = 0.2 + (10 * heightRatio);
+                        //var heightSpeed = 0.2 + (10 * heightRatio);
+                        var heightSpeed = 3;
                         workingCameraVelocity = Vector3D.Normalize(workingCameraVelocity) * spectator.SpeedModeLinear * spectatorScaling * heightSpeed;
                     }
                 }
@@ -1637,29 +1670,32 @@ namespace klime.RTS
                 {
                     if (MyAPIGateway.Input.DeltaMouseScrollWheelValue() < 0)
                     {
-                        workingMatrix.Translation += workingMatrix.Backward * (0.05 * heightDiff);
+                        //workingMatrix.Translation += workingMatrix.Backward * (0.05 * heightDiff);
+                        workingMatrix.Translation += workingMatrix.Backward *  (MyAPIGateway.Input.IsAnyCtrlKeyPressed() ? 50 : 10);
                     }
 
                     if (MyAPIGateway.Input.DeltaMouseScrollWheelValue() > 0)
                     {
-                        workingMatrix.Translation += workingMatrix.Forward * (0.05 * heightDiff);
+                        //workingMatrix.Translation += workingMatrix.Forward * (0.05 * heightDiff);
+                        workingMatrix.Translation += workingMatrix.Forward * (MyAPIGateway.Input.IsAnyCtrlKeyPressed() ? 50 : 10);
                     }
                 }
 
 
                 Vector3D finalPosition = workingMatrix.Translation + workingCameraVelocity;
-                Vector3D finalGroundPos = nearPlanet.GetClosestSurfacePointGlobal(finalPosition);
-                var finalHeight = Vector3D.Distance(finalGroundPos, finalPosition);
+                //Vector3D finalGroundPos = nearPlanet.GetClosestSurfacePointGlobal(finalPosition);
+                //var finalHeight = Vector3D.Distance(finalGroundPos, finalPosition);
 
-                if (finalHeight < pHeightMin)
-                {
-                    finalPosition += fromPlanetVec * (pHeightMin - finalHeight);
-                }
-                else if (finalHeight > pHeightMax)
-                {
-                    finalPosition += -1 * fromPlanetVec * (finalHeight - pHeightMax);
-                }
+                //if (finalHeight < pHeightMin)
+                //{
+                //    finalPosition += fromPlanetVec * (pHeightMin - finalHeight);
+                //}
+                //else if (finalHeight > pHeightMax)
+                //{
+                //    finalPosition += -1 * fromPlanetVec * (finalHeight - pHeightMax);
+                //}
 
+                //MyAPIGateway.Utilities.ShowNotification($"Speed: {Math.Round(workingCameraVelocity.Length(), 1)}", 16, "White");
                 spectator.Position = finalPosition + workingCameraVelocity;
                 workingMatrix.Translation = spectator.Position;
 
@@ -1684,7 +1720,6 @@ namespace klime.RTS
                 workingCameraVelocity = Vector3D.Zero;
                 isRotating = false;
                 rotPrev = Vector2.Zero;
-                rotVel = Vector2.Zero;
             }
         }
 
@@ -1752,9 +1787,6 @@ namespace klime.RTS
         private void ComputeWorkingDistance()
         {
             if (isRotating) return;
-
-            workingHits.Clear();
-
             var camMat = MyAPIGateway.Session.Camera.WorldMatrix;
             //MyAPIGateway.Physics.CastRay(camMat.Translation, camMat.Translation + (camMat.Forward * 1000), workingHits);
 
@@ -1776,10 +1808,11 @@ namespace klime.RTS
             //    dist = Vector3D.Distance(hitVoxelPos, camMat.Translation);
             //}
 
-            var planPos = nearPlanet.GetClosestSurfacePointGlobal(camMat.Translation);
-            double dist = Vector3D.Distance(planPos, camMat.Translation);
+            //var planPos = nearPlanet.GetClosestSurfacePointGlobal(camMat.Translation);
+            //double dist = Vector3D.Distance(planPos, camMat.Translation);
 
-            workingFocus = spectator.Position + (workingMatrix.Forward * (dist * 1.5));
+            //workingFocus = spectator.Position + (workingMatrix.Forward * (dist * 1.5));
+            workingFocus = spectator.Position + (workingMatrix.Forward * 100);
         }
 
         private bool ValidateInput()
@@ -1805,11 +1838,11 @@ namespace klime.RTS
                 return false;
             }
 
-            var nearPlanet = MyGamePruningStructure.GetClosestPlanet(charac.WorldMatrix.Translation);
-            if (nearPlanet == null)
-            {
-                return false;
-            }
+            //var nearPlanet = MyGamePruningStructure.GetClosestPlanet(charac.WorldMatrix.Translation);
+            //if (nearPlanet == null)
+            //{
+            //    return false;
+            //}
 
             //var distance = Vector3D.Distance(nearPlanet.GetClosestSurfacePointGlobal(charac.WorldMatrix.Translation), charac.WorldMatrix.Translation);
             //if (distance > 50)
