@@ -1223,6 +1223,7 @@ namespace klime.RTS
 
         public double InCubic(double t) => t * t * t;
 
+        public float savedSpeedModeLinear = 1f;
 
         public override void Init(MyObjectBuilder_SessionComponent sessionComponent)
         {
@@ -1404,6 +1405,8 @@ namespace klime.RTS
                         spectator.Position += cancelInputVec * spectator.SpeedModeLinear * finalScaling;
                     }
                 }
+
+                savedSpeedModeLinear = spectator.SpeedModeLinear;
             }
         }
 
@@ -1495,7 +1498,7 @@ namespace klime.RTS
                 {
                     freezeMatrix = MatrixD.CreateWorld(spectator.Position, spectator.Orientation.Forward, spectator.Orientation.Up);
                     workingMatrix = new MatrixD(freezeMatrix);
-                    spectator.SpeedModeLinear = 1f;
+                    spectator.SpeedModeLinear = savedSpeedModeLinear;
                     MyVisualScriptLogicProvider.SetHudState(0, 0);
                     CreateElements();
 
