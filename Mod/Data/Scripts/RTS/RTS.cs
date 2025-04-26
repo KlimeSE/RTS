@@ -210,7 +210,7 @@ namespace klime.RTS
         public abstract void Close();
     }
 
-    public class RTSCharacter: RTSUnit
+    public class RTSCharacter : RTSUnit
     {
         public IMyCharacter character;
         public Material squareMat;
@@ -540,7 +540,7 @@ namespace klime.RTS
                     RTS.rtsInstance.isRotating = false;
                 }
             }
-            
+
             //if (RTS.rtsInstance.selectedGridIndicies.Count > 0)
             //{
             //    Vector3D centralPos = Vector3D.Zero;
@@ -1470,7 +1470,7 @@ namespace klime.RTS
                     if (grav.LengthSquared() > 0) //On planet
                     {
                         upViewDirection = -1 * Vector3D.Normalize(grav);
-                        
+
                         var rightMoveDirection = Vector3D.Normalize(Vector3D.CalculatePerpendicularVector(upViewDirection));
                         var backMoveDirection = Vector3D.Normalize(Vector3D.Cross(rightMoveDirection, upViewDirection));
 
@@ -1528,7 +1528,7 @@ namespace klime.RTS
                 ////Rotation
                 //if (MyAPIGateway.Input.IsLeftMousePressed())
                 //{
-                    
+
                 //}
 
                 if (MyAPIGateway.Input.IsKeyPress(MyKeys.R) && validInputThisTick)
@@ -1713,7 +1713,7 @@ namespace klime.RTS
                     if (MyAPIGateway.Input.DeltaMouseScrollWheelValue() < 0)
                     {
                         //workingMatrix.Translation += workingMatrix.Backward * (0.05 * heightDiff);
-                        workingMatrix.Translation += workingMatrix.Backward *  (MyAPIGateway.Input.IsAnyCtrlKeyPressed() ? 50 : 10);
+                        workingMatrix.Translation += workingMatrix.Backward * (MyAPIGateway.Input.IsAnyCtrlKeyPressed() ? 50 : 10);
                     }
 
                     if (MyAPIGateway.Input.DeltaMouseScrollWheelValue() > 0)
